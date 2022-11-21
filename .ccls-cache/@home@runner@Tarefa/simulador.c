@@ -158,45 +158,45 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   free(pages);
 }
 int main(int argc, char * argv[]) {
-    int algo, pag, mem;
-    if(argc != 5){
-      printf("4 argumentos são necessários\n");
-      exit(-1);
-    }
-    if(strcmp(argv[1], "NRU") == 0){
-      algo = 0;
-    }
-    else if(strcmp(argv[1], "LRU") == 0){
-      algo = 1;
-    }
-    else{
-      printf("Algoritmo inválido. Apenas NRU e LRU são parâmetros aceitos");
-      exit(-2);
-    }
-    FILE * f = fopen(argv[2], "r");
-    if(f == NULL){
-      printf("Arquivo não encontrado\n");
-      exit(-3);
-    }
-
-    pag = atoi(argv[3]);
-    if(pag < 8 || pag > 32){
-      printf("Tamanho da página deve estar entre 8kB e 32 kB\n");
-      exit(-4);
-    }
-
-    mem = atoi(argv[4]) * 1000;
+  int algo, pag, mem;
+  if(argc != 5){
+    printf("4 argumentos são necessários\n");
+    exit(-1);
+  }
+  if(strcmp(argv[1], "NRU") == 0){
+    algo = 0;
+  }
+  else if(strcmp(argv[1], "LRU") == 0){
+    algo = 1;
+  }
+  else{
+    printf("Algoritmo inválido. Apenas NRU e LRU são parâmetros aceitos");
+    exit(-2);
+  }
+  FILE * f = fopen(argv[2], "r");
+  if(f == NULL){
+    printf("Arquivo não encontrado\n");
+    exit(-3);
+  }
+  
+  pag = atoi(argv[3]);
+  if(pag < 8 || pag > 32){
+    printf("Tamanho da página deve estar entre 8kB e 32 kB\n");
+    exit(-4);
+  }
+  
+  mem = atoi(argv[4]) * 1000;
   if(mem < 1000 || mem > 16000){
     printf("Tamanho da memória deve estar entre 1mB e 16mB\n");
     exit(-5);
   }
-    printf("Executando o simulador...\n");
-    printf("Arquivo de entrada: %s\n", argv[2]);
+  printf("Executando o simulador...\n");
+  printf("Arquivo de entrada: %s\n", argv[2]);
   printf("Tamanho da memória física: %dmM\n", mem / 1000);
   printf("Tamanho da página: %dkB\n", pag);
   printf("Algoritmo de substituição utilizado: %s\n", argv[1]);
-    processa(f, pag, mem, algo);
-    free(f);
-  return 0;
+  processa(f, pag, mem, algo);
+  free(f);
+return 0;
 }
 
