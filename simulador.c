@@ -157,23 +157,39 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   free(pages);
 }
 int main(int argc, char * argv[]) {
-    int algo;
-    if(argc != 4){
+    int algo, pag, mem;
+    if(argc != 5){
       printf("4 argumentos são necessários\n");
       exit(-1);
     }
     if(strcmp(argv[1], "NRU") == 0){
       algo = 0;
     }
-    else if(strcmp(argv[1], "NRU") == 0){
+    else if(strcmp(argv[1], "LRU") == 0){
       algo = 1;
     }
     else{
       printf("Algoritmo inválido. Apenas NRU e LRU são parâmetros aceitos");
       exit(-2);
     }
-    FILE * f = fopen("matriz.log", "r");
-    processa(f, 32, 1000, algo);
+    FILE * f = fopen(argv[2], "r");
+    if(f == NULL){
+      printf("Arquivo não encontrado\n");
+      exit(-3);
+    }
+
+    pag = atoi(argv[3]);
+    if(pag < 8 || pag > 32){
+      printf("Tamanho da página deve estar entre 8kB e 32 kB\n");
+      exit(-4);
+    }
+
+    mem = atoi(argv[4]) * 1000;
+  if(mem < 1000 || mem > 16000){
+    printf("Tamanho da memória deve estar entre 1mB e 16mB\n");
+    exit(-5);
+  }
+    processa(f, pag, mem, algo);
     free(f);
   return 0;
 }
