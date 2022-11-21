@@ -71,15 +71,13 @@ void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigne
   int c = contains(pages, processed_address, *len_lista, info);
 
   if(c != -1){
-    printf("set\n");
     set_page(pages, c, mode, time, processed_address);  }
   else{
     if(*len_lista == max_len){
+      printf("nru\n");
       *page_fault += 1;
       update_nru_info(info, pages, *len_lista);
       int i = get_nru_index(info);
-      printf("nru ");
-      printf("%d %d\n", i, info->tiers[i]);
       if(i == 3 || i == 1){
         *escrita += 1;
       }
@@ -88,7 +86,6 @@ void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigne
       info->tiers[id] = -1;
     }
     else{
-      printf("add\n");
       add_page(pages, processed_address, mode, time, len_lista);
     }
   }
@@ -124,19 +121,19 @@ s_nru * get_nru(){
 }
 
 int main(void) {
-  FILE * f = fopen("teste.log", "r");
+  FILE * f = fopen("matriz.log", "r");
   int page_size = 8;
-  int memmory_size = 2;
+  int memmory_size = 16000;
   int tempo = 0;
   int len_lista = 0;
   int page_fault = 0;
   int escrita = 0;
-  s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size);
+  s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
   s_nru * info = get_nru();
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
-    process_page(pages, id, mode, tempo, &len_lista, memmory_size, info, page_size, &page_fault, &escrita);
+    process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita);
     tempo++;
   }
   printf("%d %d\n", page_fault, escrita);
