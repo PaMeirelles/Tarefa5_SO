@@ -66,7 +66,7 @@ unsigned int num_bytes(unsigned int size){
 unsigned int get_logical(unsigned int address, int page_size){
   return address >> page_size;
 }
-void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info, int page_size, int * page_fault, int * escrita){
+void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info, int page_size, int * page_fault, int * escrita, int algo){
   unsigned int processed_address = get_logical(raw_address, page_size);
   int c = contains(pages, processed_address, *len_lista, info);
 
@@ -74,14 +74,24 @@ void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigne
     set_page(pages, c, mode, time, processed_address);  }
   else{
     if(*len_lista == max_len){
-      printf("nru\n");
       *page_fault += 1;
-      update_nru_info(info, pages, *len_lista);
+      int id;
+      if(algo == 0){
+        update_nru_info(info, pages, *len_lista);
       int i = get_nru_index(info);
       if(i == 3 || i == 1){
         *escrita += 1;
       }
-      int id = info->tiers[i];
+              id = info->tiers[i];
+
+      }
+      else{
+        id = get_lru(pages, *len_lista);
+        if(pages[id].m){
+          *escrita += 1;
+        }
+      }
+      
       set_page(pages, id, mode, time, processed_address);
       info->tiers[id] = -1;
     }
@@ -120,10 +130,22 @@ s_nru * get_nru(){
   return info;
 }
 
+int get_lru(s_quadro * pages, int len_pages){
+  int id = 0;
+  int menor = pages[0].acesso;
+  for(int i=1; i < len_pages; i++){
+    if(pages[i].acesso < menor){
+      menor = pages[i].acesso;
+      id = i;
+    }
+  }
+  return id;
+}
+
 int main(void) {
   FILE * f = fopen("matriz.log", "r");
-  int page_size = 8;
-  int memmory_size = 16000;
+  int page_size = 32;
+  int memmory_size = 1000;
   int tempo = 0;
   int len_lista = 0;
   int page_fault = 0;
@@ -133,7 +155,7 @@ int main(void) {
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
-    process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita);
+    process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita, 1);
     tempo++;
   }
   printf("%d %d\n", page_fault, escrita);
