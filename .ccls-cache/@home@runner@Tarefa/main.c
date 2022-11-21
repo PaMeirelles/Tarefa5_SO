@@ -7,6 +7,15 @@ struct{
   unsigned int acesso;
 }typedef s_quadro;
 
+unsigned int get_size(unsigned int address){
+  unsigned int size = 0;
+  while(address > 1){
+    size++;
+    address /= 10;
+  }
+  return size;
+}
+
 
 unsigned int num_bytes(unsigned int size){
   unsigned int i = 0;
@@ -17,9 +26,13 @@ unsigned int num_bytes(unsigned int size){
   return 10 + i;
 }
 
+unsigned int get_logical(unsigned int address){
+  unsigned int size = num_bytes(get_size(address));
+  return address >> size;
+}
 
 int main(void) {
-  printf("%d\n", num_bytes(8));
-  printf("Hello World\n");
+  unsigned int ad = 0x0044e4f8;
+  printf("%d\n", get_logical(ad));
   return 0;
 }
