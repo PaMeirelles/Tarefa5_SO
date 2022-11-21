@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "simulador.h"
 
 // Não referenciada, não modificada = id0
@@ -37,7 +38,6 @@ void update_nru_info(s_nru * info, s_quadro * pages, int len_pages){
   }
 
 }
-
 int get_nru_index(s_nru * info){
   for(int i=0; i < 4; i ++){
     if(info->tiers[i] != -1){
@@ -54,7 +54,6 @@ int contains(s_quadro * lista, unsigned int address, int len_lista, s_nru * info
   }
   return -1;
 }
-
 unsigned int num_bytes(unsigned int size){
   unsigned int i = 0;
   while(size > 1){
@@ -120,7 +119,6 @@ void set_page(s_quadro * pages, unsigned int id, char mode, unsigned int time, u
   }
   pages[id].address = address;
 }
-
 s_nru * get_nru(){
   s_nru * info = malloc(sizeof(s_nru));
   info->tiers = malloc(sizeof(int) * 4);
@@ -129,7 +127,6 @@ s_nru * get_nru(){
   }
   return info;
 }
-
 int get_lru(s_quadro * pages, int len_pages){
   int id = 0;
   int menor = pages[0].acesso;
@@ -141,25 +138,43 @@ int get_lru(s_quadro * pages, int len_pages){
   }
   return id;
 }
-
-int main(void) {
-  FILE * f = fopen("matriz.log", "r");
-  int page_size = 32;
-  int memmory_size = 1000;
+void processa(FILE * f, int page_size, int memmory_size, int algo){
   int tempo = 0;
   int len_lista = 0;
   int page_fault = 0;
   int escrita = 0;
+  
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
   s_nru * info = get_nru();
+  
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
-    process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita, 1);
+    process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita, algo);
     tempo++;
   }
   printf("%d %d\n", page_fault, escrita);
-  
+  free(pages);
+}
+int main(int argc, char * argv[]) {
+    int algo;
+    if(argc != 4){
+      printf("4 argumentos são necessários\n");
+      exit(-1);
+    }
+    if(strcmp(argv[1], "NRU") == 0){
+      algo = 0;
+    }
+    else if(strcmp(argv[1], "NRU") == 0){
+      algo = 1;
+    }
+    else{
+      printf("Algoritmo inválido. Apenas NRU e LRU são parâmetros aceitos");
+      exit(-2);
+    }
+    FILE * f = fopen("matriz.log", "r");
+    processa(f, 32, 1000, algo);
+    free(f);
   return 0;
 }
 
