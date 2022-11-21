@@ -153,7 +153,8 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
     process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita, algo);
     tempo++;
   }
-  printf("%d %d\n", page_fault, escrita);
+  printf("Número de faltas de página: %d\n", page_fault);
+  printf("Número de Páginas escritas: %d\n", escrita);
   free(pages);
 }
 int main(int argc, char * argv[]) {
@@ -189,6 +190,11 @@ int main(int argc, char * argv[]) {
     printf("Tamanho da memória deve estar entre 1mB e 16mB\n");
     exit(-5);
   }
+    printf("Executando o simulador...\n");
+    printf("Arquivo de entrada: %s\n", argv[2]);
+  printf("Tamanho da memória física: %dmM\n", mem / 1000);
+  printf("Tamanho da página: %dkB\n", pag);
+  printf("Algoritmo de substituição utilizado: %s\n", argv[1]);
     processa(f, pag, mem, algo);
     free(f);
   return 0;
