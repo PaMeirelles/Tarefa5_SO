@@ -6,18 +6,14 @@ struct{
 }typedef s_quadro;
 
 struct{
-  int tier1;
-  int tier2;
-  int tier3;
-  int tier4;
+  int * tiers;
 } typedef s_nru;
 
 void access_page(s_quadro * pages, unsigned int id, char mode, unsigned int time);
 int contains(s_quadro * lista, unsigned int address, int len_lista, s_nru * info_nru);
 unsigned int get_size(unsigned int address);
-unsigned int num_bytes(unsigned int size);
-unsigned int get_logical(unsigned int address);
-void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info);
+unsigned int get_logical(unsigned int address, int page_size);
+void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info, int page_size);
 void set_page(s_quadro * pages, unsigned int id, char mode, unsigned int time, unsigned int address);
 void add_page(s_quadro * pages, unsigned int address, char mode, unsigned int time, int * len_lista);
 int get_nru_index(s_nru * info);

@@ -6,47 +6,36 @@
 void update_nru_info(s_nru * info, s_quadro page, int index){
   if(page.r == 1){
     if(page.m == 1){
-      if(info->tier4 == -1){
-        info->tier4 = index;
+      if(info->tiers[3] == -1){
+        info->tiers[3] = index;
       }
     }
     else{
-      if(info->tier3 == -1){
-        info->tier3 = index;
+      if(info->tiers[2] == -1){
+        info->tiers[2] = index;
       }
     }
   }
   else{
     if(page.m == 1){
-      if(info->tier2 == -1){
-        info->tier2 = index;
+      if(info->tiers[1] == -1){
+        info->tiers[1] = index;
       }
     }
     else{
-      if(info->tier1 == -1){
-        info->tier1 = index;
+      if(info->tiers[0] == -1){
+        info->tiers[0] = index;
       }
     }
   }
 }
 
 int get_nru_index(s_nru * info){
-  if(info->tier1 != -1){
-    info->tier1 = -1;
-    return info->tier1;
-  }
-  if(info->tier2 != -1){
-    info->tier2 = -1;
-    return info->tier2;
-  }
-  if(info->tier3 != -1){
-    info->tier3 = -1;
-    return info->tier3;
-  }
-  if(info->tier4 != -1){
-    info->tier4 = -1;
-    return info->tier4;
+  for(int i=0; i < 4; i ++){
+    if(info->tiers[i] != -1){
+      return i;
     }
+  }
   return -1;
 }
 int contains(s_quadro * lista, unsigned int address, int len_lista, s_nru * info_nru){
@@ -58,14 +47,7 @@ int contains(s_quadro * lista, unsigned int address, int len_lista, s_nru * info
   }
   return -1;
 }
-unsigned int get_size(unsigned int address){
-  unsigned int size = 0;
-  while(address > 1){
-    size++;
-    address /= 10;
-  }
-  return size;
-}
+
 unsigned int num_bytes(unsigned int size){
   unsigned int i = 0;
   while(size > 1){
@@ -74,12 +56,11 @@ unsigned int num_bytes(unsigned int size){
   }
   return 10 + i;
 }
-unsigned int get_logical(unsigned int address){
-  unsigned int size = num_bytes(get_size(address));
-  return address >> size;
+unsigned int get_logical(unsigned int address, int page_size){
+  return address >> page_size;
 }
-void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info){
-  unsigned int processed_address = get_logical(raw_address);
+void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info, int page_size){
+  unsigned int processed_address = get_logical(raw_address, page_size);
   int c = contains(pages, processed_address, *len_lista, info);
 
   if(c != -1){
@@ -88,7 +69,8 @@ void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigne
   else{
     if(*len_lista == max_len){
       int i = get_nru_index(info);
-      set_page(pages, i, mode, time, processed_address);
+      int id = info->tiers[i];
+      set_page(pages, id, mode, time, processed_address);
     }
     else{
       add_page(pages, processed_address, mode, time, len_lista);
@@ -114,9 +96,30 @@ void set_page(s_quadro * pages, unsigned int id, char mode, unsigned int time, u
   pages[id].address = address;
 }
 
+s_nru * get_nru(){
+  s_nru * info = malloc(sizeof(s_nru));
+  info->tiers = malloc(sizeof(int) * 4);
+  for(int i=0; i < 4; i++){
+    info->tiers[i] = -1;
+  }
+  return info;
+}
+
 int main(void) {
-  unsigned int ad = 0x0044e4f8;
-  printf("%d\n", get_logical(ad));
+  FILE * f = fopen("matriz.log", "r");
+  int page_size = 8;
+  int memmory_size = 16;
+  int tempo = 0;
+  int len_lista = 0;
+  s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size * 1000);
+  s_nru * info = get_nru();
+  int id;
+  char mode;
+  while(fscanf(f, "%x %c", &id, &mode) == 2){
+    process_page(pages, id, mode, tempo, &len_lista, memmory_size * 1000, info, page_size);
+    tempo++;
+  }
+  
   return 0;
 }
 
