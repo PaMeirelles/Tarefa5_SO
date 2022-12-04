@@ -9,6 +9,18 @@ struct{
   int * tiers;
 } typedef s_nru;
 
+// Estrutura que vai na hash table
+struct{
+  int num_usos;
+  int * proximos_usos;
+  unsigned int key;
+} typedef s_info_endereco;
+
+struct{
+    s_info_endereco ** itens;
+    int size;
+    int count;
+}typedef s_hash_table;
 void access_page(s_quadro * pages, unsigned int id, char mode, unsigned int time);
 int contains(s_quadro * lista, unsigned int address, int len_lista, s_nru * info_nru);
 unsigned int get_size(unsigned int address);
