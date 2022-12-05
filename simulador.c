@@ -88,6 +88,19 @@ void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
 void delete(s_hash_table * table, unsigned int key);
 
 
+
+s_hash_table * fill_table(FILE * f, int size){
+  s_hash_table * table = create_table(size);
+  int id;
+  char mode;
+  int i = 0;
+  while(fscanf(f, "%x %c", &id, &mode) == 2){
+    insert(table, id, i);
+    i++;
+  }
+  return table;
+}
+
 // Não referenciada, não modificada = id0
 // Não referenciada, modificada = id1
 // Referenciada, não modificada = id2
