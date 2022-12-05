@@ -86,8 +86,7 @@ void insert(s_hash_table * table, unsigned int key){
 // Uma função auxiliar para procurar na hashtable pode ser necessária
 void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
 void delete(s_hash_table * table, unsigned int key);
-
-
+s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key);
 
 s_hash_table * fill_table(FILE * f, int size){
   s_hash_table * table = create_table(size);
@@ -101,50 +100,19 @@ s_hash_table * fill_table(FILE * f, int size){
   return table;
 }
 
+void trata_pagina(unsigned int key, int linha, s_hash_table * table){
+  s_info_endereco * i = acessa_elemento(table, key);
+  if(linha >= i->proximos_usos[i->num_usos]){
+    delete(table, key);
+  }
+  i->num_usos += 1;
+}
+
 // Não referenciada, não modificada = id0
 // Não referenciada, modificada = id1
 // Referenciada, não modificada = id2
 // Referenciada, modificada = id 3
-void update_nru_info(s_nru * info, s_quadro * pages, int len_pages){
-  s_quadro page;
-  for(int i=0; i < len_pages; i++){
-    page = pages[i];
-      if(page.r == 1){
-    if(page.m == 1){
-      if(info->tiers[3] == -1){
-        info->tiers[3] = i;
-      }
-    }
-    else{
-      if(info->tiers[2] == -1){
-        info->tiers[2] = i;
-      }
-    }
-  }
-  else{
-    if(page.m == 1){
-      if(info->tiers[1] == -1){
-        info->tiers[1] = i;
-      }
-    }
-    else{
-      if(info->tiers[0] == -1){
-        info->tiers[0] = i;
-      }
-    }
-  }
-  }
 
-}
-int get_nru_index(s_nru * info){
-  for(int i=0; i < 4; i ++){
-    if(info->tiers[i] != -1){
-      return i;
-    }
-  }
-  return -1;
-}
-int contains(s_quadro * lista, unsigned int address, int len_lista, s_nru * info_nru){
   for(int i=0; i < len_lista; i++){
     if(lista[i].address == address){
       return i;
@@ -163,34 +131,17 @@ unsigned int num_bytes(unsigned int size){
 unsigned int get_logical(unsigned int address, int page_size){
   return address >> page_size;
 }
-void process_page(s_quadro * pages, unsigned int raw_address, char mode, unsigned int time, int * len_lista, int max_len, s_nru * info, int page_size, int * page_fault, int * escrita, int algo){
+void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time, int page_size, int * page_fault, int * escrita, char mode, s_hash_table * table){
   unsigned int processed_address = get_logical(raw_address, page_size);
   int c = contains(pages, processed_address, *len_lista, info);
 
   if(c != -1){
     set_page(pages, c, mode, time, processed_address);  }
   else{
-    if(*len_lista == max_len){
+    if(table->size == table->count){
       *page_fault += 1;
       int id;
-      if(algo == 0){
-        update_nru_info(info, pages, *len_lista);
-      int i = get_nru_index(info);
-      if(i == 3 || i == 1){
-        *escrita += 1;
-      }
-              id = info->tiers[i];
-
-      }
-      else{
-        id = get_lru(pages, *len_lista);
-        if(pages[id].m){
-          *escrita += 1;
-        }
-      }
-      
       set_page(pages, id, mode, time, processed_address);
-      info->tiers[id] = -1;
     }
     else{
       add_page(pages, processed_address, mode, time, len_lista);
@@ -216,25 +167,6 @@ void set_page(s_quadro * pages, unsigned int id, char mode, unsigned int time, u
     pages[id].r = 1;
   }
   pages[id].address = address;
-}
-s_nru * get_nru(){
-  s_nru * info = malloc(sizeof(s_nru));
-  info->tiers = malloc(sizeof(int) * 4);
-  for(int i=0; i < 4; i++){
-    info->tiers[i] = -1;
-  }
-  return info;
-}
-int get_lru(s_quadro * pages, int len_pages){
-  int id = 0;
-  int menor = pages[0].acesso;
-  for(int i=1; i < len_pages; i++){
-    if(pages[i].acesso < menor){
-      menor = pages[i].acesso;
-      id = i;
-    }
-  }
-  return id;
 }
 void processa(FILE * f, int page_size, int memmory_size, int algo){
   int tempo = 0;
