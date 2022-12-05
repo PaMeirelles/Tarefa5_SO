@@ -15,10 +15,12 @@ s_info_endereco * create_info(unsigned int key) {
 s_hash_table * create_table(int size);
 void free_item(s_info_endereco * item);
 void free_table(s_hash_table * table);
+
 // Caso haja colisões, precisam ser tratadas
 // Uma função auxiliar para isso pode ser necessária
 void insert(s_hash_table * table, unsigned int key);
-void update(s_hash_table, unsigned int key, int linha_novo_uso);
+void update(s_hash_table * table, unsigned int key, int linha_novo_uso);
+
 // Caso a chave já exista, apenas chama update
 // Caso não exista, chama insert e então update
 // Uma função auxiliar para procurar na hashtable pode ser necessária
@@ -26,6 +28,17 @@ void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
 void delete(s_hash_table * table, unsigned int key);
 
 
+s_hash_table * fill_table(FILE * f){
+  s_hash_table * table = create_table(10000);
+  int id;
+  char mode;
+  int i = 0;
+  while(fscanf(f, "%x %c", &id, &mode) == 2){
+    update(table, id, i);
+    i++;
+  }
+  return table;
+}
 // Não referenciada, não modificada = id0
 // Não referenciada, modificada = id1
 // Referenciada, não modificada = id2
