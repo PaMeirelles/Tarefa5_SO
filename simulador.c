@@ -12,14 +12,74 @@ s_info_endereco * create_info(unsigned int key) {
     return info;
 }
 
-s_hash_table * create_table(int size);
-void free_item(s_info_endereco * item);
-void free_table(s_hash_table * table);
+s_hash_table * create_table(int size){
+    // Creates a new HashTable
+    s_hash_table* table = (s_hash_table*) malloc (sizeof(s_hash_table));
+    table->size = size;
+    table->count = 0;
+    table->itens = (s_info_endereco**) calloc (table->size, sizeof(s_info_endereco*));
+    for (int i=0; i<table->size; i++)
+        table->itens[i] = NULL;
 
+    return table;
+}
+void free_item(s_info_endereco * item){
+    // Frees an item
+    free(item->key);
+    free(item->num_usos);
+    free(item);
+}
+void free_table(s_hash_table * table){
+    // Frees the table
+    for (int i=0; i<table->size; i++) {
+        s_info_endereco* item = table->itens[i];
+        if (item != NULL)
+            free_item(item);
+    }
+
+    free(table->itens);
+    free(table);
+}
 // Caso haja colisões, precisam ser tratadas
 // Uma função auxiliar para isso pode ser necessária
-void insert(s_hash_table * table, unsigned int key);
-void update(s_hash_table * table, unsigned int key, int linha_novo_uso);
+void insert(s_hash_table * table, unsigned int key){
+    // Create the item
+    s_info_endereco* item = create_info(key);
+
+    // Compute the index
+    unsigned long index = hash_function(key);
+
+    s_info_endereco* current_item = table->itens[index];
+    
+    if (current_item == NULL) {
+        // Key does not exist.
+        if (table->count == table->size) {
+            // Hash Table Full
+            printf("Insert Error: Hash Table is full\n");
+            // Remove the create item
+            free_item(item);
+            return;
+        }
+        
+        // Insert directly
+        table->itens[index] = item; 
+        table->count++;
+    }
+
+    else {
+            // Scenario 1: We only need to update value
+            if (strcmp(current_item->key, key) == 0) {
+                strcpy(table->itens[index]->num_usos, value);
+                return;
+            }
+    
+        else {
+            // Scenario 2: Collision
+            handle_collision(table, index, item);
+            return;
+        }
+    }
+}
 
 // Caso a chave já exista, apenas chama update
 // Caso não exista, chama insert e então update
@@ -28,17 +88,6 @@ void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
 void delete(s_hash_table * table, unsigned int key);
 
 
-s_hash_table * fill_table(FILE * f){
-  s_hash_table * table = create_table(10000);
-  int id;
-  char mode;
-  int i = 0;
-  while(fscanf(f, "%x %c", &id, &mode) == 2){
-    update(table, id, i);
-    i++;
-  }
-  return table;
-}
 // Não referenciada, não modificada = id0
 // Não referenciada, modificada = id1
 // Referenciada, não modificada = id2
