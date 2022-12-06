@@ -3,7 +3,7 @@
 #include <string.h>
 #include "simulador.h"
 
-#define size 10000;
+#define table_size 10000
 
 s_info_endereco * create_info(unsigned int key) {
     s_info_endereco * info = malloc (sizeof(s_info_endereco));
@@ -14,10 +14,10 @@ s_info_endereco * create_info(unsigned int key) {
     return info;
 }
 
-s_hash_table * create_table(int size){
+s_hash_table * create_table(){
     // Creates a new HashTable
     s_hash_table* table = (s_hash_table*) malloc (sizeof(s_hash_table));
-    table->size = size;
+    table->size = table_size;
     table->count = 0;
     table->itens = (s_info_endereco**) calloc (table->size, sizeof(s_info_endereco*));
     for (int i=0; i<table->size; i++)
@@ -86,7 +86,7 @@ void insert(s_hash_table * table, unsigned int key, int time){
 void handle_collision(s_hash_table * table, int index, s_info_endereco * item);
 void delete(s_hash_table * table, unsigned int key);
 unsigned int hash_function(int index){
-  return index % size;
+  return index % table_size;
 }
 
 s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key){
@@ -101,8 +101,8 @@ s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key){
     return NULL;
 }
 
-s_hash_table * fill_table(FILE * f, int size){
-  s_hash_table * table = create_table(size);
+s_hash_table * fill_table(FILE * f){
+  s_hash_table * table = create_table(table_size);
   int id;
   char mode;
   int i = 0;
@@ -143,14 +143,6 @@ unsigned int algo_otimo(unsigned key, int tempo, s_hash_table * table, s_quadro 
 // Não referenciada, modificada = id1
 // Referenciada, não modificada = id2
 // Referenciada, modificada = id 3
-
-  for(int i=0; i < len_lista; i++){
-    if(lista[i].address == address){
-      return i;
-    }
-  }
-  return -1;
-}
 unsigned int num_bytes(unsigned int size){
   unsigned int i = 0;
   while(size > 1){
@@ -159,12 +151,20 @@ unsigned int num_bytes(unsigned int size){
   }
   return 10 + i;
 }
+int contains(s_quadro * lista, unsigned int address, int len_lista){
+  for(int i=0; i < len_lista; i++){
+    if(lista[i].address == address){
+      return i;
+    }
+  }
+  return -1;
+}
 unsigned int get_logical(unsigned int address, int page_size){
   return address >> page_size;
 }
 void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time, int page_size, int * page_fault, int * escrita, char mode, s_hash_table * table, int * len_lista, int max_len){
   unsigned int processed_address = get_logical(raw_address, page_size);
-  int c = contains(pages, processed_address, *len_lista, info);
+  int c = contains(pages, processed_address, *len_lista);
 
   if(c != -1){
     set_page(pages, c, mode, time, processed_address);  
@@ -202,18 +202,18 @@ void set_page(s_quadro * pages, unsigned int id, char mode, unsigned int time, u
   }
   pages[id].address = address;
 }
-void processa(FILE * f, int page_size, int memmory_size, int algo){
+void processa(FILE * f, int page_size, int memmory_size){
   int tempo = 0;
   int len_lista = 0;
   int page_fault = 0;
   int escrita = 0;
   
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
-  s_hash_table * table = fill_table(f, size);  
+  s_hash_table * table = fill_table(f, table_size); 
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
-    process_page(pages, id, mode, tempo, &len_lista, memmory_size / page_size, info, page_size, &page_fault, &escrita, algo);
+    process_page(pages, id, tempo, page_size, page_fault, escrita, mode, table, len_lista, memmory_size / page_size);
     tempo++;
   }
   printf("Número de faltas de página: %d\n", page_fault);
@@ -222,20 +222,10 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   free_table(table);
 }
 int main(int argc, char * argv[]) {
-  int algo, pag, mem;
+  int pag, mem;
   if(argc != 5){
-    printf("4 argumentos são necessários\n");
+    printf("3 argumentos são necessários\n");
     exit(-1);
-  }
-  if(strcmp(argv[1], "NRU") == 0){
-    algo = 0;
-  }
-  else if(strcmp(argv[1], "LRU") == 0){
-    algo = 1;
-  }
-  else{
-    printf("Algoritmo inválido. Apenas NRU e LRU são parâmetros aceitos");
-    exit(-2);
   }
   FILE * f = fopen(argv[2], "r");
   if(f == NULL){
@@ -259,7 +249,7 @@ int main(int argc, char * argv[]) {
   printf("Tamanho da memória física: %dmB\n", mem / 1000);
   printf("Tamanho da página: %dkB\n", pag);
   printf("Algoritmo de substituição utilizado: %s\n", argv[1]);
-  processa(f, pag, mem, algo);
+  processa(f, pag, mem);
   free(f);
 return 0;
 }
