@@ -3,6 +3,8 @@
 #include <string.h>
 #include "simulador.h"
 
+#define size 10000;
+
 s_info_endereco * create_info(unsigned int key) {
     s_info_endereco * info = malloc (sizeof(s_info_endereco));
     info->key = key;
@@ -25,8 +27,7 @@ s_hash_table * create_table(int size){
 }
 void free_item(s_info_endereco * item){
     // Frees an item
-    free(item->key);
-    free(item->num_usos);
+    free(item->proximos_usos);
     free(item);
 }
 void free_table(s_hash_table * table){
@@ -42,7 +43,7 @@ void free_table(s_hash_table * table){
 }
 // Caso haja colisões, precisam ser tratadas
 // Uma função auxiliar para isso pode ser necessária
-void insert(s_hash_table * table, unsigned int key){
+void insert(s_hash_table * table, unsigned int key, int time){
     // Create the item
     s_info_endereco* item = create_info(key);
 
@@ -68,8 +69,9 @@ void insert(s_hash_table * table, unsigned int key){
 
     else {
             // Scenario 1: We only need to update value
-            if (strcmp(current_item->key, key) == 0) {
-                strcpy(table->itens[index]->num_usos, value);
+            if (current_item->key == key) {
+                current_item->proximos_usos[current_item->num_usos] = time;
+                current_item->num_usos++;
                 return;
             }
     
@@ -81,91 +83,11 @@ void insert(s_hash_table * table, unsigned int key){
     }
 }
 
-void handle_collision(s_hash_table* table, unsigned long index, s_info_endereco* item) {
-    LinkedList* head = table->overflow_buckets[index];
-
-    if (head == NULL) {
-        // We need to create the list
-        head = allocate_list();
-        head->item = item;
-        table->overflow_buckets[index] = head;
-        return;
-    }
-    else {
-        // Insert to the list
-        table->overflow_buckets[index] = linkedlist_insert(head, item);
-        return;
-    }
- }
-
 // Caso a chave já exista, apenas chama update
 // Caso não exista, chama insert e então update
 // Uma função auxiliar para procurar na hashtable pode ser necessária
 void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
-
-
-void delete(s_hash_table * table, unsigned int key){
-    // Deletes an item from the table
-    int index = hash_function(key);
-    Ht_item* item = table->items[index];
-    LinkedList* head = table->overflow_buckets[index];
-
-    if (item == NULL) {
-        // Does not exist. Return
-        return;
-    }
-    else {
-        if (head == NULL && strcmp(item->key, key) == 0) {
-            // No collision chain. Remove the item
-            // and set table index to NULL
-            table->itens[index] = NULL;
-            free_item(item);
-            table->count--;
-            return;
-        }
-        else if (head != NULL) {
-            // Collision Chain exists
-            if (strcmp(item->key, key) == 0) {
-                // Remove this item and set the head of the list
-                // as the new item
-                
-                free_item(item);
-                LinkedList* node = head;
-                head = head->next;
-                node->next = NULL;
-                table->itens[index] = create_item(node->item->key, node->item->value);
-                free_linkedlist(node);
-                table->overflow_buckets[index] = head;
-                return;
-            }
-
-            LinkedList* curr = head;
-            LinkedList* prev = NULL;
-            
-            while (curr) {
-                if (strcmp(curr->item->key, key) == 0) {
-                    if (prev == NULL) {
-                        // First element of the chain. Remove the chain
-                        free_linkedlist(head);
-                        table->overflow_buckets[index] = NULL;
-                        return;
-                    }
-                    else {
-                        // This is somewhere in the chain
-                        prev->next = curr->next;
-                        curr->next = NULL;
-                        free_linkedlist(curr);
-                        table->overflow_buckets[index] = head;
-                        return;
-                    }
-                }
-                curr = curr->next;
-                prev = curr;
-            }
-
-        }
-    }
-}
+void delete(s_hash_table * table, unsigned int key);
 s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key);
 
 s_hash_table * fill_table(FILE * f, int size){
@@ -234,12 +156,15 @@ void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time,
   int c = contains(pages, processed_address, *len_lista, info);
 
   if(c != -1){
-    set_page(pages, c, mode, time, processed_address);  }
+    set_page(pages, c, mode, time, processed_address);  
+    trata_pagina(c, time, table);
+    }
   else{
     if(*len_lista == max_len){
       *page_fault += 1;
-      int id;
+      unsigned int id = algo_otimo(processed_address, time, table, pages, *len_lista);
       set_page(pages, id, mode, time, processed_address);
+      acessa_elemento(table, id)->num_usos += 1;
     }
     else{
       add_page(pages, processed_address, mode, time, len_lista);
@@ -273,8 +198,7 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   int escrita = 0;
   
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
-  s_nru * info = get_nru();
-  
+  s_hash_table * table = fill_table(f, size);  
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
@@ -284,6 +208,7 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   printf("Número de faltas de página: %d\n", page_fault);
   printf("Número de Páginas escritas: %d\n", escrita);
   free(pages);
+  free_table(table);
 }
 int main(int argc, char * argv[]) {
   int algo, pag, mem;
