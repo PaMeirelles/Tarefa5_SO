@@ -8,7 +8,6 @@
 s_info_endereco * create_info(unsigned int key) {
     s_info_endereco * info = malloc (sizeof(s_info_endereco));
     info->key = key;
-    // 8 é um número arbitrário, se ultrapassar realizo realloc
     info->ultimo_uso = 0;
     return info;
 }
@@ -46,7 +45,7 @@ void insert(s_hash_table * table, unsigned int key, int time){
 
     // Compute the index
     unsigned long index = hash_function(key);
-    printf("%ld %ld\n", key, index);
+    //printf("%x %ld %d\n", key, index, time);
    s_info_endereco* current_item = table->itens[index];
     if (current_item == NULL) {
         // Key does not exist.
@@ -88,7 +87,7 @@ table->count -= 1;
 free_item(table->itens[hash_function(key)]);
 table->itens[hash_function(key)] = NULL;
 };
-unsigned int hash_function(int index){
+unsigned int hash_function(unsigned int index){
   return index % table_size;
 }
 
@@ -214,7 +213,6 @@ void processa(FILE * f, int page_size, int memmory_size){
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
   
   s_hash_table * table = fill_table(f); 
-  printf("here\n");
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
