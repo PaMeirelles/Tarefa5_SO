@@ -3,6 +3,8 @@
 #include <string.h>
 #include "simulador.h"
 
+#define size 10000;
+
 s_info_endereco * create_info(unsigned int key) {
     s_info_endereco * info = malloc (sizeof(s_info_endereco));
     info->key = key;
@@ -83,7 +85,9 @@ void insert(s_hash_table * table, unsigned int key, int time){
 
 void handle_collision(s_hash_table * table, int index, s_info_endereco * item);
 void delete(s_hash_table * table, unsigned int key);
-unsigned int hash_function(int index);
+unsigned int hash_function(int index){
+  return index % size;
+}
 
 s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key){
     int index = hash_function(key);
@@ -205,7 +209,7 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   int escrita = 0;
   
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
-  s_hash_table * table = fill_table(f, 10000);  
+  s_hash_table * table = fill_table(f, size);  
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
