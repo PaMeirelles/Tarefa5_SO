@@ -151,7 +151,9 @@ void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time,
   int c = contains(pages, processed_address, *len_lista, info);
 
   if(c != -1){
-    set_page(pages, c, mode, time, processed_address);  }
+    set_page(pages, c, mode, time, processed_address);  
+    trata_pagina(c, time, table);
+    }
   else{
     if(*len_lista == max_len){
       *page_fault += 1;
