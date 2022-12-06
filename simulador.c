@@ -3,7 +3,7 @@
 #include <string.h>
 #include "simulador.h"
 
-#define table_size 100
+#define table_size 10000000
 
 s_info_endereco * create_info(unsigned int key) {
     s_info_endereco * info = malloc (sizeof(s_info_endereco));
@@ -11,7 +11,17 @@ s_info_endereco * create_info(unsigned int key) {
     info->ultimo_uso = 0;
     return info;
 }
-void handle_collision(s_hash_table * table, unsigned int key, s_info_endereco * item){};
+void handle_collision(s_hash_table * table, unsigned int index, s_info_endereco * item){
+  int i = index, j = 0;
+  while(j < table_size){
+    if(table->itens[i] == NULL){
+        add(i, table, item);
+        break;
+    }
+    i = (i + 1) % table_size;
+    j++;
+  }
+};
 s_hash_table * create_table(){
     // Creates a new HashTable
     s_hash_table* table = (s_hash_table*) malloc (sizeof(s_hash_table));
@@ -39,7 +49,21 @@ void free_table(s_hash_table * table){
 }
 // Caso haja colisões, precisam ser tratadas
 // Uma função auxiliar para isso pode ser necessária
+void add(unsigned int index, s_hash_table * table, s_info_endereco * item){
+ if (table->count == table->size) {
+      // Hash Table Full
+      printf("Insert Error: Hash Table is full\n");
+      // Remove the create item
+      free_item(item);
+      return;
+  }
+  
+  // Insert directly
+  table->itens[index] = item; 
+  table->count++;
+}
 void insert(s_hash_table * table, unsigned int key, int time){
+  //printf("Tempo: %d\nOcupado: %d\n", time, table->count);
     // Create the item
     s_info_endereco* item = create_info(key);
 
@@ -48,29 +72,21 @@ void insert(s_hash_table * table, unsigned int key, int time){
     //printf("%x %ld %d\n", key, index, time);
    s_info_endereco* current_item = table->itens[index];
     if (current_item == NULL) {
-        // Key does not exist.
-        if (table->count == table->size) {
-            // Hash Table Full
-            printf("Insert Error: Hash Table is full\n");
-            // Remove the create item
-            free_item(item);
+      //printf("Caminho a\n");
+      add(index, table, item);
+    }
+    else {
+        // Scenario 1: We only need to update value
+        if (current_item->key == key) {
+                //printf("Caminho b\n");
+
+            current_item->ultimo_uso = time;
             return;
         }
-        
-        // Insert directly
-        table->itens[index] = item; 
-        table->count++;
-    }
 
-    else {
-
-            // Scenario 1: We only need to update value
-            if (current_item->key == key) {
-                current_item->ultimo_uso = time;
-                return;
-            }
-    
         else {
+                //printf("Caminho c\n");
+
             // Scenario 2: Collision
             handle_collision(table, index, item);
             return;
@@ -79,13 +95,10 @@ void insert(s_hash_table * table, unsigned int key, int time){
   
 }
 
-// Caso a chave já exista, apenas chama update
-// Caso não exista, chama insert e então update
-// Uma função auxiliar para procurar na hashtable pode ser necessária
 void delete(s_hash_table * table, unsigned int key){
 table->count -= 1;
-free_item(table->itens[hash_function(key)]);
-table->itens[hash_function(key)] = NULL;
+s_info_endereco * elem = acessa_elemento(table, key);
+elem = NULL;
 };
 unsigned int hash_function(unsigned int index){
   return index % table_size;
@@ -95,12 +108,11 @@ s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key){
     int index = hash_function(key);
     s_info_endereco * item = table->itens[index];
     // Ensure that we move to a non NULL item
-    if (item != NULL) {
-        if (item->key == key){
-            return item;
-        }
+    while(item == NULL){
+      index = (index + 1) % table_size;
+      item = table->itens[index];
     }
-    return NULL;
+    return item;
 }
 
 s_hash_table * fill_table(FILE * f){
@@ -117,14 +129,8 @@ s_hash_table * fill_table(FILE * f){
   return table;
 }
 
-void trata_pagina(unsigned int key, int tempo, s_hash_table * table){
-  s_info_endereco * i = acessa_elemento(table, key);
-  if(tempo >= i->ultimo_uso){
-    delete(table, key);
-  }
-}
 
-unsigned int algo_otimo(int tempo, s_hash_table * table, s_quadro * pages, int len){
+unsigned int algo_otimo(int tempo, s_hash_table * table, s_quadro * pages, int len, int time){
   unsigned int key = pages[0].address;
   s_info_endereco * melhor_elemento = acessa_elemento(table, key);
   int melhor_valor = melhor_elemento->ultimo_uso;
@@ -132,14 +138,22 @@ unsigned int algo_otimo(int tempo, s_hash_table * table, s_quadro * pages, int l
   s_info_endereco * elemento_atual;
   int valor_atual;
    for(int i=1; i < len; i++){
+
     key = pages[i].address;
     elemento_atual = acessa_elemento(table, key);
     valor_atual = elemento_atual->ultimo_uso;
+
+    if(valor_atual < time){
+
+      return valor_atual;
+    }
     if(valor_atual > melhor_valor){
       melhor_valor = valor_atual;
+
       melhor_elemento = elemento_atual;
     }
   }
+
   return melhor_elemento->key;
 }
 // Não referenciada, não modificada = id0
@@ -171,13 +185,15 @@ void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time,
 
   if(c != -1){
     set_page(pages, c, mode, time, processed_address);  
-    trata_pagina(c, time, table);
     }
   else{
     if(*len_lista == max_len){
       *page_fault += 1;
-      unsigned int id = algo_otimo(time, table, pages, *len_lista);
+      unsigned int id = algo_otimo(time, table, pages, *len_lista, time);
       set_page(pages, id, mode, time, processed_address);
+              if(pages[id].m){
+          *escrita += 1;
+        }
     }
     else{
       add_page(pages, processed_address, mode, time, len_lista);
@@ -204,7 +220,7 @@ void set_page(s_quadro * pages, unsigned int id, char mode, unsigned int time, u
   }
   pages[id].address = address;
 }
-void processa(FILE * f, int page_size, int memmory_size){
+void processa(FILE * f, int page_size, int memmory_size, char * nome){
   int tempo = 0;
   int len_lista = 0;
   int page_fault = 0;
@@ -213,9 +229,12 @@ void processa(FILE * f, int page_size, int memmory_size){
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
   
   s_hash_table * table = fill_table(f); 
+  printf("Tamanho da hash table: %d\n", table->count);
+  fclose(f);
+  FILE * f2 = fopen(nome, "r");
   int id;
   char mode;
-  while(fscanf(f, "%x %c", &id, &mode) == 2){
+  while(fscanf(f2, "%x %c", &id, &mode) == 2){
     process_page(pages, id, tempo, page_size, &page_fault, &escrita, mode, table, &len_lista, memmory_size / page_size);
     tempo++;
   }
@@ -252,7 +271,7 @@ int main(int argc, char * argv[]) {
   printf("Arquivo de entrada: %s\n", argv[1]);
   printf("Tamanho da memória física: %dmB\n", mem / 1000);
   printf("Tamanho da página: %dkB\n", pag);
-  processa(f, pag, mem);
+  processa(f, pag, mem, argv[1]);
   free(f);
 return 0;
 }
