@@ -41,7 +41,7 @@ void free_table(s_hash_table * table){
 }
 // Caso haja colisões, precisam ser tratadas
 // Uma função auxiliar para isso pode ser necessária
-void insert(s_hash_table * table, unsigned int key){
+void insert(s_hash_table * table, unsigned int key, int time){
     // Create the item
     s_info_endereco* item = create_info(key);
 
@@ -67,8 +67,9 @@ void insert(s_hash_table * table, unsigned int key){
 
     else {
             // Scenario 1: We only need to update value
-            if (strcmp(current_item->key, key) == 0) {
-                strcpy(table->itens[index]->num_usos, value);
+            if (current_item->key == key) {
+                current_item->proximos_usos[current_item->num_usos] = time;
+                current_item->num_usos++;
                 return;
             }
     
@@ -80,10 +81,7 @@ void insert(s_hash_table * table, unsigned int key){
     }
 }
 
-// Caso a chave já exista, apenas chama update
-// Caso não exista, chama insert e então update
-// Uma função auxiliar para procurar na hashtable pode ser necessária
-void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
+void handle_collision(s_hash_table * table, int index, s_info_endereco * item);
 void delete(s_hash_table * table, unsigned int key);
 s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key);
 
