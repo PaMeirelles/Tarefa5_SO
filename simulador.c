@@ -158,8 +158,9 @@ void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time,
   else{
     if(*len_lista == max_len){
       *page_fault += 1;
-      int id;
+      unsigned int id = algo_otimo(processed_address, time, table, pages, *len_lista);
       set_page(pages, id, mode, time, processed_address);
+      acessa_elemento(table, id)->num_usos += 1;
     }
     else{
       add_page(pages, processed_address, mode, time, len_lista);
@@ -193,8 +194,7 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   int escrita = 0;
   
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
-  s_nru * info = get_nru();
-  
+  s_hash_table * table = fill_table(f, 10000);  
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
@@ -204,6 +204,7 @@ void processa(FILE * f, int page_size, int memmory_size, int algo){
   printf("Número de faltas de página: %d\n", page_fault);
   printf("Número de Páginas escritas: %d\n", escrita);
   free(pages);
+  free_table(table);
 }
 int main(int argc, char * argv[]) {
   int algo, pag, mem;
