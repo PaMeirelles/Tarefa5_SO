@@ -124,7 +124,7 @@ void trata_pagina(unsigned int key, int tempo, s_hash_table * table){
   i->num_usos += 1;
 }
 
-unsigned int algo_otimo(unsigned key, int tempo, s_hash_table * table, s_quadro * pages, int len){
+unsigned int algo_otimo(int tempo, s_hash_table * table, s_quadro * pages, int len){
   unsigned int key = pages[0].address;
   s_info_endereco * melhor_elemento = acessa_elemento(table, key);
   int melhor_valor = melhor_elemento->proximos_usos[melhor_elemento->num_usos];
@@ -176,7 +176,7 @@ void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time,
   else{
     if(*len_lista == max_len){
       *page_fault += 1;
-      unsigned int id = algo_otimo(processed_address, time, table, pages, *len_lista);
+      unsigned int id = algo_otimo(time, table, pages, *len_lista);
       set_page(pages, id, mode, time, processed_address);
       acessa_elemento(table, id)->num_usos += 1;
     }
@@ -212,11 +212,11 @@ void processa(FILE * f, int page_size, int memmory_size){
   int escrita = 0;
   
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
-  s_hash_table * table = fill_table(f, table_size); 
+  s_hash_table * table = fill_table(f); 
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
-    process_page(pages, id, tempo, page_size, page_fault, escrita, mode, table, len_lista, memmory_size / page_size);
+    process_page(pages, id, tempo, page_size, &page_fault, &escrita, mode, table, &len_lista, memmory_size / page_size);
     tempo++;
   }
   printf("Número de faltas de página: %d\n", page_fault);
