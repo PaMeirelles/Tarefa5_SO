@@ -83,7 +83,10 @@ void insert(s_hash_table * table, unsigned int key, int time){
     }
 }
 
-void handle_collision(s_hash_table * table, int index, s_info_endereco * item);
+// Caso a chave já exista, apenas chama update
+// Caso não exista, chama insert e então update
+// Uma função auxiliar para procurar na hashtable pode ser necessária
+void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
 void delete(s_hash_table * table, unsigned int key);
 unsigned int hash_function(int index){
   return index % table_size;
