@@ -25,8 +25,7 @@ s_hash_table * create_table(int size){
 }
 void free_item(s_info_endereco * item){
     // Frees an item
-    free(item->key);
-    free(item->num_usos);
+    free(item->proximos_usos);
     free(item);
 }
 void free_table(s_hash_table * table){
