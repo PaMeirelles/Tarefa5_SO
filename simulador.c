@@ -3,17 +3,16 @@
 #include <string.h>
 #include "simulador.h"
 
-#define table_size 10000
+#define table_size 100
 
 s_info_endereco * create_info(unsigned int key) {
     s_info_endereco * info = malloc (sizeof(s_info_endereco));
     info->key = key;
-    info->num_usos = 0;
     // 8 é um número arbitrário, se ultrapassar realizo realloc
-    info->proximos_usos = malloc(sizeof(int) * 8);
+    info->ultimo_uso = 0;
     return info;
 }
-
+void handle_collision(s_hash_table * table, unsigned int key, s_info_endereco * item){};
 s_hash_table * create_table(){
     // Creates a new HashTable
     s_hash_table* table = (s_hash_table*) malloc (sizeof(s_hash_table));
@@ -22,12 +21,10 @@ s_hash_table * create_table(){
     table->itens = (s_info_endereco**) calloc (table->size, sizeof(s_info_endereco*));
     for (int i=0; i<table->size; i++)
         table->itens[i] = NULL;
-
     return table;
 }
 void free_item(s_info_endereco * item){
     // Frees an item
-    free(item->proximos_usos);
     free(item);
 }
 void free_table(s_hash_table * table){
@@ -49,9 +46,8 @@ void insert(s_hash_table * table, unsigned int key, int time){
 
     // Compute the index
     unsigned long index = hash_function(key);
-
-    s_info_endereco* current_item = table->itens[index];
-    
+    printf("%ld %ld\n", key, index);
+   s_info_endereco* current_item = table->itens[index];
     if (current_item == NULL) {
         // Key does not exist.
         if (table->count == table->size) {
@@ -68,10 +64,10 @@ void insert(s_hash_table * table, unsigned int key, int time){
     }
 
     else {
+
             // Scenario 1: We only need to update value
             if (current_item->key == key) {
-                current_item->proximos_usos[current_item->num_usos] = time;
-                current_item->num_usos++;
+                current_item->ultimo_uso = time;
                 return;
             }
     
@@ -81,13 +77,17 @@ void insert(s_hash_table * table, unsigned int key, int time){
             return;
         }
     }
+  
 }
 
 // Caso a chave já exista, apenas chama update
 // Caso não exista, chama insert e então update
 // Uma função auxiliar para procurar na hashtable pode ser necessária
-void novo_uso(s_hash_table * table, unsigned int key, int linha_novo_uso);
-void delete(s_hash_table * table, unsigned int key);
+void delete(s_hash_table * table, unsigned int key){
+table->count -= 1;
+free_item(table->itens[hash_function(key)]);
+table->itens[hash_function(key)] = NULL;
+};
 unsigned int hash_function(int index){
   return index % table_size;
 }
@@ -109,32 +109,33 @@ s_hash_table * fill_table(FILE * f){
   int id;
   char mode;
   int i = 0;
+  
   while(fscanf(f, "%x %c", &id, &mode) == 2){
     insert(table, id, i);
     i++;
   }
+  
   return table;
 }
 
 void trata_pagina(unsigned int key, int tempo, s_hash_table * table){
   s_info_endereco * i = acessa_elemento(table, key);
-  if(tempo >= i->proximos_usos[i->num_usos]){
+  if(tempo >= i->ultimo_uso){
     delete(table, key);
   }
-  i->num_usos += 1;
 }
 
 unsigned int algo_otimo(int tempo, s_hash_table * table, s_quadro * pages, int len){
   unsigned int key = pages[0].address;
   s_info_endereco * melhor_elemento = acessa_elemento(table, key);
-  int melhor_valor = melhor_elemento->proximos_usos[melhor_elemento->num_usos];
+  int melhor_valor = melhor_elemento->ultimo_uso;
 
   s_info_endereco * elemento_atual;
   int valor_atual;
    for(int i=1; i < len; i++){
     key = pages[i].address;
     elemento_atual = acessa_elemento(table, key);
-    valor_atual = elemento_atual->proximos_usos[elemento_atual->num_usos];
+    valor_atual = elemento_atual->ultimo_uso;
     if(valor_atual > melhor_valor){
       melhor_valor = valor_atual;
       melhor_elemento = elemento_atual;
@@ -178,7 +179,6 @@ void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time,
       *page_fault += 1;
       unsigned int id = algo_otimo(time, table, pages, *len_lista);
       set_page(pages, id, mode, time, processed_address);
-      acessa_elemento(table, id)->num_usos += 1;
     }
     else{
       add_page(pages, processed_address, mode, time, len_lista);
@@ -212,7 +212,9 @@ void processa(FILE * f, int page_size, int memmory_size){
   int escrita = 0;
   
   s_quadro * pages = malloc(sizeof(s_quadro) * memmory_size / page_size);
+  
   s_hash_table * table = fill_table(f); 
+  printf("here\n");
   int id;
   char mode;
   while(fscanf(f, "%x %c", &id, &mode) == 2){
@@ -223,35 +225,35 @@ void processa(FILE * f, int page_size, int memmory_size){
   printf("Número de Páginas escritas: %d\n", escrita);
   free(pages);
   free_table(table);
+  
 }
 int main(int argc, char * argv[]) {
   int pag, mem;
-  if(argc != 5){
+  if(argc != 4){
     printf("3 argumentos são necessários\n");
     exit(-1);
   }
-  FILE * f = fopen(argv[2], "r");
+  FILE * f = fopen(argv[1], "r");
   if(f == NULL){
     printf("Arquivo não encontrado\n");
     exit(-3);
   }
   
-  pag = atoi(argv[3]);
+  pag = atoi(argv[2]);
   if(pag < 8 || pag > 32){
     printf("Tamanho da página deve estar entre 8kB e 32 kB\n");
     exit(-4);
   }
   
-  mem = atoi(argv[4]) * 1000;
+  mem = atoi(argv[3]) * 1000;
   if(mem < 1000 || mem > 16000){
     printf("Tamanho da memória deve estar entre 1mB e 16mB\n");
     exit(-5);
   }
   printf("Executando o simulador...\n");
-  printf("Arquivo de entrada: %s\n", argv[2]);
+  printf("Arquivo de entrada: %s\n", argv[1]);
   printf("Tamanho da memória física: %dmB\n", mem / 1000);
   printf("Tamanho da página: %dkB\n", pag);
-  printf("Algoritmo de substituição utilizado: %s\n", argv[1]);
   processa(f, pag, mem);
   free(f);
 return 0;
