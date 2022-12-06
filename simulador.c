@@ -83,7 +83,19 @@ void insert(s_hash_table * table, unsigned int key, int time){
 
 void handle_collision(s_hash_table * table, int index, s_info_endereco * item);
 void delete(s_hash_table * table, unsigned int key);
-s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key);
+unsigned int hash_function(int index);
+
+s_info_endereco * acessa_elemento(s_hash_table * table, unsigned int key){
+    int index = hash_function(key);
+    s_info_endereco * item = table->itens[index];
+    // Ensure that we move to a non NULL item
+    if (item != NULL) {
+        if (item->key == key){
+            return item;
+        }
+    }
+    return NULL;
+}
 
 s_hash_table * fill_table(FILE * f, int size){
   s_hash_table * table = create_table(size);
