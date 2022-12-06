@@ -100,14 +100,32 @@ s_hash_table * fill_table(FILE * f, int size){
   return table;
 }
 
-void trata_pagina(unsigned int key, int linha, s_hash_table * table){
+void trata_pagina(unsigned int key, int tempo, s_hash_table * table){
   s_info_endereco * i = acessa_elemento(table, key);
-  if(linha >= i->proximos_usos[i->num_usos]){
+  if(tempo >= i->proximos_usos[i->num_usos]){
     delete(table, key);
   }
   i->num_usos += 1;
 }
 
+unsigned int algo_otimo(unsigned key, int tempo, s_hash_table * table, s_quadro * pages, int len){
+  unsigned int key = pages[0].address;
+  s_info_endereco * melhor_elemento = acessa_elemento(table, key);
+  int melhor_valor = melhor_elemento->proximos_usos[melhor_elemento->num_usos];
+
+  s_info_endereco * elemento_atual;
+  int valor_atual;
+   for(int i=1; i < len; i++){
+    key = pages[i].address;
+    elemento_atual = acessa_elemento(table, key);
+    valor_atual = elemento_atual->proximos_usos[elemento_atual->num_usos];
+    if(valor_atual > melhor_valor){
+      melhor_valor = valor_atual;
+      melhor_elemento = elemento_atual;
+    }
+  }
+  return melhor_elemento->key;
+}
 // Não referenciada, não modificada = id0
 // Não referenciada, modificada = id1
 // Referenciada, não modificada = id2
@@ -131,14 +149,14 @@ unsigned int num_bytes(unsigned int size){
 unsigned int get_logical(unsigned int address, int page_size){
   return address >> page_size;
 }
-void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time, int page_size, int * page_fault, int * escrita, char mode, s_hash_table * table){
+void process_page(s_quadro * pages, unsigned int raw_address, unsigned int time, int page_size, int * page_fault, int * escrita, char mode, s_hash_table * table, int * len_lista, int max_len){
   unsigned int processed_address = get_logical(raw_address, page_size);
   int c = contains(pages, processed_address, *len_lista, info);
 
   if(c != -1){
     set_page(pages, c, mode, time, processed_address);  }
   else{
-    if(table->size == table->count){
+    if(*len_lista == max_len){
       *page_fault += 1;
       int id;
       set_page(pages, id, mode, time, processed_address);
